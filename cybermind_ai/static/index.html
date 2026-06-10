@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CyberMind AI - Elite Intelligence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        [x-cloak] { display: none !important; }
+        :root { --accent: #3b82f6; --bg: #050505; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: #ededed; overflow: hidden; -webkit-font-smoothing: antialiased; }
+        .glass { background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(25px); border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .side-panel { position: fixed; right: 0; top: 0; bottom: 0; width: 100%; z-index: 200; background: #0d0d0d; transform: translateX(100%); transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        @media (min-width: 768px) { .side-panel { width: 500px; border-left: 1px solid rgba(255,255,255,0.05); } }
+        .side-panel.open { transform: translateX(0); }
+        .tool-card { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); transition: 0.3s; cursor: pointer; }
+        .tool-card:hover { border-color: var(--accent); background: rgba(255,255,255,0.04); transform: translateY(-2px); }
+        textarea { background: transparent; outline: none; border: none; resize: none; }
+        .chat-container { max-width: 850px; margin: 0 auto; width: 100%; }
+        ::-webkit-scrollbar { width: 2px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
+    </style>
+</head>
+<body x-data="cyberApp()" class="flex flex-col h-screen h-[100dvh] overflow-hidden" x-init="initUsage()">
+
+    <!-- Header -->
+    <header class="h-20 flex-shrink-0 flex items-center justify-between px-6 md:px-10 glass z-[100]">
+        <div class="flex items-center space-x-4">
+            <div class="cursor-pointer" @click="location.reload()">
+                <svg width="38" height="38" viewBox="0 0 100 100">
+                    <path d="M50 5 L90 25 L90 75 L50 95 L10 75 L10 25 Z" fill="none" stroke="#3b82f6" stroke-width="4" />
+                    <path d="M35 40 Q50 20 65 40 Q65 60 50 80 Q35 60 35 40" fill="#3b82f6" opacity="0.9" />
+                </svg>
+            </div>
+            <div class="flex flex-col text-left">
+                <span class="font-bold text-sm tracking-widest text-white uppercase">CyberMind AI</span>
+                <span class="text-[8px] font-bold text-blue-400 uppercase tracking-widest leading-none">Neural Intelligence by NayonDev</span>
+            </div>
+        </div>
+        <button @click="panelOpen = true" class="p-2.5 hover:bg-white/5 rounded-full transition text-gray-400">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+        </button>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 overflow-y-auto" id="chat-container">
+        <div class="chat-container px-6 py-12 md:py-20">
+            <template x-if="messages.length === 0">
+                <div class="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
+                    <h2 class="text-3xl md:text-5xl font-light text-white tracking-tight text-center uppercase">CyberMind AI</h2>
+                    <p class="text-[13px] text-gray-500 text-center mt-2 font-medium uppercase tracking-widest leading-loose">Elite Artificial Intelligence Platform</p>
+                    <p class="text-[10px] text-blue-500 uppercase tracking-[0.4em] text-center mt-6 font-bold">Build Smarter • Secure Faster • Innovate Beyond Limits</p>
+                    <div class="w-10 h-0.5 bg-blue-600 rounded-full mt-10 opacity-30"></div>
+                </div>
+            </template>
+            <div class="space-y-12">
+                <template x-for="(msg, index) in messages" :key="index">
+                    <div class="flex flex-col space-y-3" :class="msg.role === 'user' ? 'items-end' : 'items-start'">
+                        <span class="text-[9px] font-bold text-gray-600 uppercase tracking-[0.2em] px-1" x-text="msg.role === 'user' ? 'NayonDev' : 'CyberMind AI'"></span>
+                        <div :class="msg.role === 'user' ? 'bg-white/5 border border-white/10 p-5 rounded-2xl max-w-[90%]' : 'p-2 rounded-3xl w-full text-gray-200'" class="text-[16px] leading-relaxed">
+                            <div x-html="msg.content"></div>
+                            <template x-if="msg.hasCode">
+                                <div class="mt-8 flex flex-wrap gap-3"><button @click="previewCode(msg.code)" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition shadow-lg">Live Preview</button><button @click="downloadFile(msg.code, msg.filename)" class="bg-white/5 border border-white/10 text-gray-400 px-5 py-2.5 rounded-xl text-xs font-bold transition">Source</button></div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="h-32"></div>
+        </div>
+    </main>
+
+    <!-- Master Input Area -->
+    <div class="flex-shrink-0 w-full pb-8 md:pb-12 bg-gradient-to-t from-black via-black/80 to-transparent z-[80]">
+        <div class="chat-container px-6">
+            <div class="bg-[#111] border border-white/10 p-2 flex items-center rounded-[30px] shadow-3xl w-full">
+                <label class="p-3 bg-white/5 rounded-full cursor-pointer hover:bg-white/10 ml-1">
+                    <input type="file" @change="uploadFile($event)" class="hidden">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="opacity-60"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </label>
+                <textarea x-model="userInput" @keydown.enter.prevent="sendMessage()" placeholder="Collaborate with CyberMind..." class="flex-1 bg-transparent px-4 py-3 text-[15px] outline-none text-white resize-none max-h-48"></textarea>
+                <div class="flex items-center space-x-1 pr-1">
+                    <button @click="startVoice()" :class="isListening ? 'text-red-500 animate-pulse' : 'text-gray-500'" class="p-2 transition text-xl"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
+                    <button @click="sendMessage()" class="bg-white text-black p-3.5 rounded-full transition shadow-lg active:scale-95"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg></button>
+                </div>
+            </div>
+            <p class="text-[9px] text-center mt-3 text-blue-500 uppercase tracking-widest font-bold">CyberMind AI Elite • Build by NayonDev</p>
+        </div>
+    </div>
+
+    <!-- 3-Dot Side Panel -->
+    <div x-cloak x-show="panelOpen" class="side-panel flex flex-col shadow-3xl" :class="panelOpen ? 'open' : ''">
+        <div class="h-20 border-b border-white/5 flex-shrink-0 flex items-center justify-between px-8 bg-black/40">
+            <div class="flex space-x-6">
+                <button @click="activeView = 'tools'" :class="activeView === 'tools' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-gray-500'" class="text-[10px] font-bold uppercase tracking-widest pb-1 transition">Tools</button>
+                <button @click="activeView = 'founder'" :class="activeView === 'founder' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-gray-500'" class="text-[10px] font-bold uppercase tracking-widest pb-1 transition">Founder</button>
+                <button @click="activeView = 'status'" :class="activeView === 'status' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-gray-500'" class="text-[10px] font-bold uppercase tracking-widest pb-1 transition">Status</button>
+            </div>
+            <button @click="panelOpen = false" class="text-gray-500 hover:text-white text-3xl transition">&times;</button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-8 space-y-10">
+            <!-- Modular AI Tools (Now with 13 Ultra-Pro Tools) -->
+            <template x-if="activeView === 'tools'">
+                <div class="grid grid-cols-1 gap-4">
+                    <!-- Ultra Pro: Neural Prompt Optimizer -->
+                    <div @click="runTool('Neural Prompt Optimizer')" class="tool-card p-6 rounded-[28px] border-purple-500/20 bg-purple-500/5 flex items-center space-x-6 hover:border-purple-500 transition">
+                        <div class="text-purple-500">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-sm font-bold text-white uppercase">Neural Prompt Optimizer</span>
+                            <span class="text-[9px] text-purple-400 uppercase tracking-widest mt-1 font-bold">Powered by Opus 4.6 Logic</span>
+                        </div>
+                    </div>
+
+                    <!-- Ultra Pro: Security Sentinel -->
+                    <div @click="runTool('Security Sentinel')" class="tool-card p-6 rounded-[28px] border-emerald-500/20 bg-emerald-500/5 flex items-center space-x-6 hover:border-emerald-500 transition">
+                        <div class="text-emerald-500">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-sm font-bold text-white uppercase">Security Sentinel</span>
+                            <span class="text-[9px] text-emerald-400 uppercase tracking-widest mt-1 font-bold">Pro-Grade Code Auditing</span>
+                        </div>
+                    </div>
+
+                    <template x-for="tool in ['Universal Neural API Hub', 'AI Website Builder', 'CV Generator', 'Portfolio Generator', 'Code Repair Tool', 'Cyber Security Lab', 'API Tester', 'Prompt Engineer', 'AI Research Assistant', 'File Analyzer', 'Smart Chat Assistant']">
+                        <div @click="runTool(tool)" class="tool-card p-5 rounded-3xl flex items-center space-x-5 transition">
+                            <div :class="tool === 'Universal Neural API Hub' ? 'text-orange-500' : 'text-blue-500'">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+                            </div>
+                            <div class="flex flex-col text-left"><span class="text-sm font-semibold text-white" x-text="tool"></span><span class="text-[9px] text-gray-500 uppercase tracking-widest mt-1 leading-none" x-text="tool === 'Universal Neural API Hub' ? 'Access 1400+ Public APIs' : 'Activate Elite Module'"></span></div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+            <template x-if="activeView === 'founder'">
+                <div class="p-8 rounded-[40px] bg-white/[0.02] border border-white/5 space-y-8 text-center animate-in fade-in duration-500">
+                    <div class="space-y-4 text-center w-full">
+                        <h2 class="text-3xl font-bold text-white tracking-tight text-center w-full">NayonDev</h2>
+                        <p class="text-blue-500 text-[10px] font-bold uppercase tracking-[0.3em] text-center w-full">Founder & Lead Developer</p>
+                        <div class="w-12 h-0.5 bg-blue-600 mx-auto rounded-full opacity-50"></div>
+                    </div>
+                    <p class="text-sm text-gray-400 leading-relaxed px-4 text-center italic">"Architecting the future through CyberMind AI. Building next-generation digital innovation solutions with precision and intelligence."</p>
+                    <div class="grid grid-cols-2 gap-3 pt-4">
+                        <a href="https://github.com/nayondev0x" target="_blank" class="p-4 bg-white/5 rounded-2xl text-[10px] font-bold border border-white/5 hover:bg-white/10 uppercase transition">GitHub</a>
+                        <a href="https://www.facebook.com/NayonAhamedOfficial" target="_blank" class="p-4 bg-blue-600/10 rounded-2xl text-[10px] font-bold border border-blue-600/10 text-blue-400 uppercase transition">Facebook</a>
+                        <a href="https://instagram.com/cyber.nayon" target="_blank" class="p-4 bg-purple-600/10 rounded-2xl text-[10px] font-bold border border-purple-600/10 text-purple-400 uppercase transition">Instagram</a>
+                        <a href="https://wa.me/qr/VP2MGPQLAI7JM1" target="_blank" class="p-4 bg-emerald-600/10 rounded-2xl text-[10px] font-bold border border-emerald-600/10 text-emerald-400 uppercase transition">WhatsApp</a>
+                    </div>
+                </div>
+            </template>
+            <template x-if="activeView === 'status'">
+                <div class="p-8 rounded-[40px] bg-white/[0.02] border border-white/5 space-y-10 animate-in slide-in-from-bottom-5 duration-500">
+                    <h3 class="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-8">System Metrics</h3>
+                    <div class="space-y-10">
+                        <div class="space-y-3">
+                            <div class="flex justify-between text-[11px] font-bold text-gray-400 uppercase"><span>AI Neural Tokens</span><span x-text="usage.tokens + ' / ' + usage.limit"></span></div>
+                            <div class="h-2 w-full bg-white/5 rounded-full overflow-hidden"><div class="h-full bg-blue-600 shadow-[0_0_15px_#3b82f6]" :style="'width: ' + (usage.tokens / usage.limit * 100) + '%'"></div></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-white/5 p-5 rounded-3xl border border-white/5 text-center"><div class="text-gray-500 text-[9px] uppercase font-bold mb-1">Status</div><div class="text-emerald-400 font-bold text-sm">ONLINE</div></div>
+                            <div class="bg-white/5 p-5 rounded-3xl border border-white/5 text-center"><div class="text-gray-500 text-[9px] uppercase font-bold mb-1">Health</div><div class="text-blue-400 font-bold text-sm">99.9%</div></div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <script>
+        function cyberApp() {
+            return {
+                panelOpen: false, activeView: 'tools', messages: [], userInput: '', isListening: false,
+                usage: { tokens: 0, requests: 0, limit: 1000000 }, activeProject: 'main_vault',
+                async initUsage() { const res = await fetch('/api/usage'); this.usage = await res.json(); },
+                async sendMessage() {
+                    if(!this.userInput.trim()) return;
+                    const prompt = this.userInput; this.messages.push({ role: 'user', content: prompt });
+                    this.userInput = ''; this.scrollToBottom();
+                    const res = await fetch('/api/chat', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ prompt: prompt, project: this.activeProject }) });
+                    const data = await res.json(); await this.initUsage();
+                    this.messages.push({ role: 'assistant', content: data.response, hasCode: data.hasCode, code: data.code, filename: data.filename || 'index.html' });
+                    this.scrollToBottom();
+                },
+                runTool(name) { this.panelOpen = false; this.userInput = `Activate [${name}] Mode.`; this.sendMessage(); },
+                startVoice() { const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)(); rec.onstart = () => this.isListening = true; rec.onresult = (e) => { this.userInput = e.results[0][0].transcript; this.sendMessage(); }; rec.onend = () => this.isListening = false; rec.start(); },
+                uploadFile(event) { const file = event.target.files[0]; const formData = new FormData(); formData.append("file", file); fetch(`/api/upload?project=${this.activeProject}`, { method: 'POST', body: formData }).then(() => { this.messages.push({ role: 'assistant', content: `File **${file.name}** uploaded successfully.` }); this.scrollToBottom(); }); },
+                scrollToBottom() { setTimeout(() => { document.getElementById('chat-container').scrollTo({ top: document.getElementById('chat-container').scrollHeight, behavior: 'smooth' }); }, 150); }
+            }
+        }
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a09abdd5691ed4ac',t:'MTc4MTExOTMxMg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"1954b47c125f43f8b4338b3c4f804e4f","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
